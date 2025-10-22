@@ -54,12 +54,12 @@ if(AXON_EXAMPLES)
 
   add_example(minimal examples/minimal/main.cpp)
 
-  add_example(image_encode
-    examples/image_encode/main.cpp
-    examples/image_encode/deps/stb_image.h
-    examples/image_encode/deps/stb_image.c
-    examples/image_encode/deps/stb_image_write.h
-    examples/image_encode/deps/stb_image_write.c
+  add_example(image_encoder
+    examples/image_encoder/main.cpp
+    examples/image_encoder/deps/stb_image.h
+    examples/image_encoder/deps/stb_image.c
+    examples/image_encoder/deps/stb_image_write.h
+    examples/image_encoder/deps/stb_image_write.c
   )
 
 endif()

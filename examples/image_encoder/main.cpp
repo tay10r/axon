@@ -23,7 +23,7 @@ generateDataset(const char* filename) -> bool
 {
   int w = 0;
   int h = 0;
-  auto* img = stbi_load(CMAKE_CURRENT_SOURCE_DIR "/examples/image_encode/sample.png", &w, &h, nullptr, 3);
+  auto* img = stbi_load("sample.png", &w, &h, nullptr, 3);
   if (!img) {
     fprintf(stderr, "failed to load '%s'\n", filename);
     return false;
@@ -111,37 +111,24 @@ main() -> int
   }
 
   auto builder = axon::ModuleBuilder::create();
-  auto in_u = builder->input();
-  auto in_v = builder->input();
+  const auto input_uv = axon::input<2, 1>(*builder);
 
-  auto w0 = builder->param();
-  auto w1 = builder->param();
-  auto w2 = builder->param();
-  auto w3 = builder->param();
-  auto w4 = builder->param();
-  auto w5 = builder->param();
-
-  auto rOut = builder->mul(builder->mul(in_u, w0), builder->mul(in_v, w1));
-  auto gOut = builder->mul(builder->mul(in_u, w2), builder->mul(in_v, w3));
-  auto bOut = builder->mul(builder->mul(in_u, w4), builder->mul(in_v, w5));
+  const auto w0 = axon::param<3, 2>(*builder);
+  const auto w1 = axon::param<3, 3>(*builder);
+  const auto w2 = axon::param<3, 3>(*builder);
+  const auto w3 = axon::param<3, 3>(*builder);
+  const auto x0 = matmul(*builder, w0, input_uv);
+  const auto x1 = matmul(*builder, w1, x0);
+  const auto x2 = matmul(*builder, w2, x1);
+  const auto rgbOut = matmul(*builder, w3, x2);
 
   auto evalModule = builder->build();
 
   // train the network
 
-  auto rTarget = builder->input();
-  auto gTarget = builder->input();
-  auto bTarget = builder->input();
+  const auto target = axon::input<3, 1>(*builder);
 
-  auto rDelta = builder->sub(rTarget, rOut);
-  auto gDelta = builder->sub(gTarget, gOut);
-  auto bDelta = builder->sub(bTarget, bOut);
-
-  auto rDelta2 = builder->mul(rDelta, rDelta);
-  auto gDelta2 = builder->mul(gDelta, gDelta);
-  auto bDelta2 = builder->mul(bDelta, bDelta);
-
-  auto loss = builder->add(builder->add(rDelta2, gDelta2), bDelta2);
+  const auto loss = axon::mse(*builder, target, rgbOut);
 
   auto gradModule = builder->buildWithGrad(loss);
 
@@ -155,7 +142,7 @@ main() -> int
 
   for (int i = 0; i < epochs; i++) {
 
-    const int samples = 1000;
+    const int samples = 100'000;
 
     optim->zeroGrad();
 
@@ -168,7 +155,7 @@ main() -> int
 
     printf("epoch[%d]: %f\n", i, (lossSum / static_cast<float>(samples)));
 
-    optim->step(/*lr=*/0.001F);
+    optim->step(/*lr=*/0.01F / static_cast<float>(samples));
   }
 
   // load the eval network and test it
@@ -179,7 +166,7 @@ main() -> int
 
   auto interp = axon::Interpreter::create(*evalModule, parameters.data());
 
-  generateTestImage(*interp, rOut, gOut, bOut);
+  generateTestImage(*interp, rgbOut[0], rgbOut[1], rgbOut[2]);
 
   return EXIT_SUCCESS;
 }

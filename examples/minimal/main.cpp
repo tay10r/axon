@@ -61,10 +61,6 @@ main() -> int
     return EXIT_FAILURE;
   }
 
-  std::mt19937 rng(0);
-
-  std::uniform_real_distribution<float> x_dist(0, 1);
-
   const auto epochs = 10;
 
   for (int i = 0; i < epochs; i++) {

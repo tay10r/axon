@@ -1,2 +1,4 @@
 .cache
 build
+examples/image_encoder/data.axd
+examples/image_encoder/result.png

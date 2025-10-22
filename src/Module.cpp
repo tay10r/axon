@@ -226,6 +226,8 @@ public:
     return push(new ParamExpr(param));
   }
 
+  [[nodiscard]] auto constant(const float value) -> Value override { return push(new ConstExpr(value)); }
+
   [[nodiscard]] auto add(Value left, Value right) -> Value override
   {
     return push(new AddExpr(left.index(), right.index()));
