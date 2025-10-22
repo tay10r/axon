@@ -49,7 +49,7 @@ public:
 
   [[nodiscard]] auto numParameters() const -> uint32_t override { return m_numParameters; }
 
-  [[nodiscard]] auto numExprs() const -> uint32_t override { return m_exprs.size(); }
+  [[nodiscard]] auto numExprs() const -> uint32_t override { return static_cast<uint32_t>(m_exprs.size()); }
 
 private:
   std::vector<std::shared_ptr<Expr>> m_exprs;
@@ -76,20 +76,12 @@ public:
 
     m_module->m_exprs.emplace_back(std::move(tmp));
 
-    it->second = Value(m_module->m_exprs.size() - 1);
+    it->second = Value(static_cast<uint32_t>(m_module->m_exprs.size() - 1));
   }
 
-  void visit(const ConstExpr& e) override
-  {
-    //
-  }
+  void visit(const ConstExpr&) override {}
 
-  void visit(const InputExpr& e) override
-  {
-    const auto index = e.index();
-
-    //
-  }
+  void visit(const InputExpr&) override {}
 
   void visit(const ParamExpr& e) override
   {
@@ -100,24 +92,28 @@ public:
 
   void visit(const NegateExpr& e) override
   {
+    (void)e;
     //
   }
 
   void visit(const RcpExpr& e) override
   {
     const auto op = e.operand();
+    (void)op;
     //
   }
 
   void visit(const SqrtExpr& e) override
   {
     const auto op = e.operand();
+    (void)op;
     //
   }
 
   void visit(const ExpExpr& e) override
   {
     const auto op = e.operand();
+    (void)op;
     //
   }
 
@@ -125,6 +121,8 @@ public:
   {
     const auto l = e.left();
     const auto r = e.right();
+    (void)l;
+    (void)r;
 
     //
   }
@@ -181,7 +179,7 @@ protected:
 
     m_module->m_exprs.emplace_back(std::move(tmp));
 
-    return Value(m_module->m_exprs.size());
+    return Value(static_cast<uint32_t>(m_module->m_exprs.size() - 1));
   }
 
 private:
@@ -245,7 +243,7 @@ protected:
 
     m_module->m_exprs.emplace_back(std::move(ptr));
 
-    Value value(m_module->m_exprs.size() - 1);
+    Value value(static_cast<uint32_t>(m_module->m_exprs.size() - 1));
 
     return value;
   }

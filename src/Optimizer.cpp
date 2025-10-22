@@ -20,9 +20,9 @@ class Executor final : public ExprVisitor
 {
 public:
   Executor(const Module& m, const float* parameters, float* gradient)
-    : m_buffer(m.numExprs())
-    , m_parameters(parameters)
+    : m_parameters(parameters)
     , m_gradient(gradient)
+    , m_buffer(m.numExprs())
   {
     //
   }
