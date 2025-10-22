@@ -26,7 +26,7 @@ public:
    * */
   [[nodiscard]] virtual auto buildWithGrad(Value loss) -> std::unique_ptr<Module> = 0;
 
-  [[nodiscard]] virtual auto input(uint32_t index) -> Value = 0;
+  [[nodiscard]] virtual auto input() -> Value = 0;
 
   [[nodiscard]] virtual auto param() -> Value = 0;
 

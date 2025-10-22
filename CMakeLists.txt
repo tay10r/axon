@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 project(axon)
 
 option(AXON_WARNINGS "Whether or not to enable compiler warnings." OFF)
+option(AXON_EXAMPLES "Whether or not to build the example programs." OFF)
 
 if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
@@ -16,12 +17,16 @@ add_library(axon
   include/axon/ModuleBuilder.h
   include/axon/Value.h
   include/axon/Optimizer.h
+  include/axon/Dataset.h
+  include/axon/Interpreter.h
   src/Expr.cpp
   src/ExprPrinter.cpp
   src/ExprVisitor.cpp
   src/Module.cpp
   src/Value.cpp
   src/Optimizer.cpp
+  src/Dataset.cpp
+  src/Interpreter.cpp
 )
 
 if(AXON_WARNINGS)
@@ -35,7 +40,26 @@ target_include_directories(axon
     include
 )
 
-add_executable(main
-  main.cpp
-)
-target_link_libraries(main PRIVATE axon)
+add_library(axon::axon ALIAS axon)
+
+if(AXON_EXAMPLES)
+
+  function(add_example name)
+    set(target axon_example_${name})
+    add_executable(${target} ${ARGN})
+    target_link_libraries(${target} PRIVATE axon)
+    set_target_properties(${target} PROPERTIES OUTPUT_NAME ${name})
+    target_compile_definitions(${target} PRIVATE "CMAKE_CURRENT_SOURCE_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}\"")
+  endfunction()
+
+  add_example(minimal examples/minimal/main.cpp)
+
+  add_example(image_encode
+    examples/image_encode/main.cpp
+    examples/image_encode/deps/stb_image.h
+    examples/image_encode/deps/stb_image.c
+    examples/image_encode/deps/stb_image_write.h
+    examples/image_encode/deps/stb_image_write.c
+  )
+
+endif()

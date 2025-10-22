@@ -26,6 +26,8 @@ class ModuleImpl final : public Module
   friend GradModuleInserter;
 
 public:
+  [[nodiscard]] auto copy() const -> std::unique_ptr<Module> override { return std::make_unique<ModuleImpl>(*this); }
+
   void visit(ExprVisitor& visitor) const override
   {
     for (size_t i = 0; i < m_exprs.size(); i++) {
@@ -49,12 +51,16 @@ public:
 
   [[nodiscard]] auto numParameters() const -> uint32_t override { return m_numParameters; }
 
+  [[nodiscard]] auto numInputs() const -> uint32_t override { return m_numInputs; }
+
   [[nodiscard]] auto numExprs() const -> uint32_t override { return static_cast<uint32_t>(m_exprs.size()); }
 
 private:
   std::vector<std::shared_ptr<Expr>> m_exprs;
 
   uint32_t m_numParameters{};
+
+  uint32_t m_numInputs{};
 };
 
 class GradModuleInserter final : public ExprVisitor
@@ -209,7 +215,7 @@ public:
     return m;
   }
 
-  [[nodiscard]] auto input(const uint32_t index) -> Value override { return push(new InputExpr(index)); }
+  [[nodiscard]] auto input() -> Value override { return push(new InputExpr(m_module->m_numInputs++)); }
 
   [[nodiscard]] auto param() -> Value override
   {

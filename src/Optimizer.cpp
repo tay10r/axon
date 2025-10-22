@@ -1,127 +1,87 @@
 #include <axon/Optimizer.h>
 
+#include <axon/Dataset.h>
 #include <axon/Expr.h>
 #include <axon/ExprVisitor.h>
+#include <axon/Interpreter.h>
 #include <axon/Module.h>
 #include <axon/Value.h>
 
+#include <algorithm>
 #include <limits>
 #include <random>
 #include <vector>
 
 #include <assert.h>
 #include <math.h>
+#include <string.h>
 
 namespace axon {
 
 namespace {
 
-class Executor final : public ExprVisitor
-{
-public:
-  Executor(const Module& m, const float* parameters, float* gradient)
-    : m_parameters(parameters)
-    , m_gradient(gradient)
-    , m_buffer(m.numExprs())
-  {
-    //
-  }
-
-  [[nodiscard]] auto getValue(const Value& value) const -> float { return m_buffer.at(value.index()); }
-
-  void setInput(const float* input, const size_t len)
-  {
-    m_input.resize(len);
-
-    for (size_t i = 0; i < len; i++) {
-      m_input[i] = input[i];
-    }
-  }
-
-  void visit(const InputExpr& e) override { m_buffer.at(m_ip++) = m_input.at(e.index()); }
-
-  void visit(const ParamExpr& e) override { m_buffer.at(m_ip++) = m_parameters[e.index()]; }
-
-  void visit(const ConstExpr& e) override { m_buffer.at(m_ip++) = e.value(); }
-
-  void visit(const NegateExpr& e) override { m_buffer.at(m_ip++) = -m_buffer.at(e.operand()); }
-
-  void visit(const RcpExpr& e) override { m_buffer.at(m_ip++) = 1.0F / m_buffer.at(e.operand()); }
-
-  void visit(const SqrtExpr& e) override { m_buffer.at(m_ip++) = sqrtf(m_buffer.at(e.operand())); }
-
-  void visit(const ExpExpr& e) override { m_buffer.at(m_ip++) = expf(m_buffer.at(e.operand())); }
-
-  void visit(const MaxExpr& e) override { m_buffer.at(m_ip++) = fmaxf(m_buffer.at(e.left()), m_buffer.at(e.right())); }
-
-  void visit(const AddExpr& e) override { m_buffer.at(m_ip++) = m_buffer.at(e.left()) + m_buffer.at(e.right()); }
-
-  void visit(const SubExpr& e) override { m_buffer.at(m_ip++) = m_buffer.at(e.left()) - m_buffer.at(e.right()); }
-
-  void visit(const MulExpr& e) override { m_buffer.at(m_ip++) = m_buffer.at(e.left()) * m_buffer.at(e.right()); }
-
-  void visit(const GradAddExpr& e) override { m_gradient[e.paramIndex()] += m_buffer.at(e.valueIndex()); }
-
-  void reset() { m_ip = 0; }
-
-private:
-  const float* m_parameters{};
-
-  float* m_gradient{};
-
-  std::vector<float> m_input;
-
-  std::vector<float> m_buffer;
-
-  size_t m_ip{};
-};
-
 class OptimizerImpl final : public Optimizer
 {
 public:
-  void prepare(const Module& m) override
+  OptimizerImpl()
+    : m_rng(0)
   {
+  }
+
+  [[nodiscard]] auto prepare(const Module& m, const Dataset& dataset) -> bool override
+  {
+    if (m.numInputs() != dataset.cols()) {
+      return false;
+    }
+
+    m_cols = m.numInputs();
+
+    m_dataOffset = 0;
+
+    m_data.resize(dataset.rows() * dataset.cols());
+
+    memcpy(m_data.data(), dataset.data(), m_data.size() * sizeof(float));
+
+    m_indices.resize(dataset.rows());
+
+    for (size_t i = 0; i < m_indices.size(); i++) {
+      m_indices[i] = static_cast<uint32_t>(i);
+    }
+
+    shuffleIndices();
+
     const auto n = m.numParameters();
 
     m_parameters.resize(n);
 
     m_gradient.resize(n, 0.0F);
 
-    std::mt19937 rng(0);
-
     std::uniform_real_distribution<float> dist(-1, 1);
 
     for (size_t i = 0; i < n; i++) {
-      m_parameters[i] = dist(rng);
+      m_parameters[i] = dist(m_rng);
     }
 
-    m_executor.reset(new Executor(m, m_parameters.data(), m_gradient.data()));
+    m_interpreter = Interpreter::create(m, m_parameters.data(), m_gradient.data());
+
+    return true;
   }
 
-  void setInput(const float* input, const size_t len) override
+  [[nodiscard]] auto exec(Value loss) -> float override
   {
-    assert(m_executor);
+    assert(m_interpreter);
 
-    if (!m_executor) {
-      return;
-    }
-
-    m_executor->setInput(input, len);
-  }
-
-  [[nodiscard]] auto exec(const Module& m, Value loss) -> float override
-  {
-    assert(m_executor);
-
-    if (!m_executor) {
+    if (!m_interpreter) {
       return std::numeric_limits<float>::infinity();
     }
 
-    m_executor->reset();
+    const float* data = m_data.data() + m_cols * m_indices[m_dataOffset];
 
-    m.visit(*m_executor);
+    m_dataOffset = (m_dataOffset + 1) % static_cast<uint32_t>(m_indices.size());
 
-    return m_executor->getValue(loss);
+    m_interpreter->exec(data);
+
+    return m_interpreter->getValue(loss);
   }
 
   void step(const float lr) override
@@ -138,12 +98,30 @@ public:
     }
   }
 
+  void readParameters(float* parameters) override
+  {
+    memcpy(parameters, m_parameters.data(), m_parameters.size() * sizeof(float));
+  }
+
+protected:
+  void shuffleIndices() { std::shuffle(m_indices.begin(), m_indices.end(), m_rng); }
+
 private:
   std::vector<float> m_parameters;
 
   std::vector<float> m_gradient;
 
-  std::unique_ptr<Executor> m_executor;
+  std::unique_ptr<Interpreter> m_interpreter;
+
+  std::vector<float> m_data;
+
+  std::vector<uint32_t> m_indices;
+
+  uint32_t m_dataOffset{};
+
+  uint32_t m_cols{};
+
+  std::mt19937 m_rng;
 };
 
 } // namespace

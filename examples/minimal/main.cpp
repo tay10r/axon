@@ -1,11 +1,36 @@
 #include <iostream>
 #include <random>
 
+#include <stdlib.h>
+
+#include <axon/Dataset.h>
 #include <axon/ExprPrinter.h>
 #include <axon/Module.h>
 #include <axon/ModuleBuilder.h>
 #include <axon/Optimizer.h>
 #include <axon/Value.h>
+
+namespace {
+
+class CustomData final : public axon::ProceduralData
+{
+public:
+  void generate(float* row) override
+  {
+    auto fn = [](const float x) -> float { return x * -5.2F + 0.3F; };
+
+    std::uniform_real_distribution<float> dist(0, 1);
+    // x
+    row[0] = dist(m_rng);
+    // y_target
+    row[1] = fn(row[0]);
+  }
+
+private:
+  std::mt19937 m_rng{ 0 };
+};
+
+} // namespace
 
 auto
 main() -> int
@@ -13,11 +38,11 @@ main() -> int
   auto builder = axon::ModuleBuilder::create();
   auto w = builder->param();
   auto b = builder->param();
-  auto x = builder->input(/*index=*/0);
+  auto x = builder->input();
   auto yPred = builder->add(builder->mul(x, w), b);
 
   // loss
-  auto yTarget = builder->input(/*index=*/1);
+  auto yTarget = builder->input();
   auto yError = builder->sub(yPred, yTarget);
   auto loss = builder->mul(yError, yError);
 
@@ -27,10 +52,14 @@ main() -> int
   axon::ExprPrinter printer(&std::cout);
   m->visit(printer);
 
-  auto optim = axon::Optimizer::create();
-  optim->prepare(*m);
+  // generate training data
+  CustomData generator;
+  auto data = axon::Dataset::create(/*rows=*/100, /*cols=*/2, generator);
 
-  auto fn = [](const float x) -> float { return x * -5.2F + 0.3F; };
+  auto optim = axon::Optimizer::create();
+  if (!optim->prepare(*m, *data)) {
+    return EXIT_FAILURE;
+  }
 
   std::mt19937 rng(0);
 
@@ -48,13 +77,7 @@ main() -> int
 
     for (int j = 0; j < samples; j++) {
 
-      const float x = x_dist(rng);
-
-      const float input[2]{ x, fn(x) };
-
-      optim->setInput(input, 2);
-
-      lossSum += optim->exec(*m, loss);
+      lossSum += optim->exec(loss);
     }
 
     std::cout << "epoch[" << i << "]: " << (lossSum / static_cast<float>(samples)) << std::endl;
@@ -62,5 +85,5 @@ main() -> int
     optim->step(/*lr=*/0.01F);
   }
 
-  return 0;
+  return EXIT_SUCCESS;
 }
