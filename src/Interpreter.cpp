@@ -54,7 +54,14 @@ public:
 
   void visit(const ExpExpr& e) override { m_buffer.at(m_ip++) = expf(m_buffer.at(e.operand())); }
 
-  void visit(const MaxExpr& e) override { m_buffer.at(m_ip++) = fmaxf(m_buffer.at(e.left()), m_buffer.at(e.right())); }
+  void visit(const ReLUExpr& e) override { m_buffer.at(m_ip++) = fmaxf(m_buffer.at(e.operand()), 0.0F); }
+
+  void visit(const HeavisideExpr& e) override
+  {
+    const auto x = m_buffer.at(e.operand());
+
+    m_buffer.at(m_ip++) = (x > 0.0F) ? 1.0F : 0.0F;
+  }
 
   void visit(const AddExpr& e) override { m_buffer.at(m_ip++) = m_buffer.at(e.left()) + m_buffer.at(e.right()); }
 

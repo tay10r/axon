@@ -95,7 +95,13 @@ ExpExpr::accept(ExprVisitor& visitor) const
 }
 
 void
-MaxExpr::accept(ExprVisitor& visitor) const
+ReLUExpr::accept(ExprVisitor& visitor) const
+{
+  visitor.visit(*this);
+}
+
+void
+HeavisideExpr::accept(ExprVisitor& visitor) const
 {
   visitor.visit(*this);
 }

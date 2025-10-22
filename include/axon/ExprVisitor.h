@@ -9,7 +9,8 @@ class NegateExpr;
 class RcpExpr;
 class SqrtExpr;
 class ExpExpr;
-class MaxExpr;
+class ReLUExpr;
+class HeavisideExpr;
 class AddExpr;
 class SubExpr;
 class MulExpr;
@@ -34,7 +35,9 @@ public:
 
   virtual void visit(const ExpExpr&) = 0;
 
-  virtual void visit(const MaxExpr&) = 0;
+  virtual void visit(const ReLUExpr&) = 0;
+
+  virtual void visit(const HeavisideExpr&) = 0;
 
   virtual void visit(const AddExpr&) = 0;
 

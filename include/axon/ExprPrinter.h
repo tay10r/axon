@@ -25,7 +25,9 @@ public:
 
   void visit(const ExpExpr&) override;
 
-  void visit(const MaxExpr&) override;
+  void visit(const ReLUExpr&) override;
+
+  void visit(const HeavisideExpr&) override;
 
   void visit(const AddExpr&) override;
 

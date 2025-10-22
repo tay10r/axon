@@ -34,6 +34,14 @@ public:
 
   [[nodiscard]] virtual auto constant(float value) -> Value = 0;
 
+  [[nodiscard]] virtual auto negate(Value operand) -> Value = 0;
+
+  [[nodiscard]] virtual auto exp(Value operand) -> Value = 0;
+
+  [[nodiscard]] virtual auto relu(Value operand) -> Value = 0;
+
+  [[nodiscard]] virtual auto heaviside(Value operand) -> Value = 0;
+
   [[nodiscard]] virtual auto add(Value left, Value right) -> Value = 0;
 
   [[nodiscard]] virtual auto sub(Value left, Value right) -> Value = 0;
@@ -62,6 +70,45 @@ param(ModuleBuilder& builder) -> Matrix<Value, R, C>
 
   for (uint32_t i = 0; i < (R * C); i++) {
     result.data[i] = Value(builder.param());
+  }
+
+  return result;
+}
+
+template<uint32_t R, uint32_t C>
+[[nodiscard]] auto
+negate(ModuleBuilder& builder, const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
+{
+  Matrix<Value, R, C> result;
+
+  for (uint32_t i = 0; i < (R * C); i++) {
+    result[i] = builder.negate(x[i]);
+  }
+
+  return result;
+}
+
+template<uint32_t R, uint32_t C>
+[[nodiscard]] auto
+exp(ModuleBuilder& builder, const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
+{
+  Matrix<Value, R, C> result;
+
+  for (uint32_t i = 0; i < (R * C); i++) {
+    result[i] = builder.exp(x[i]);
+  }
+
+  return result;
+}
+
+template<uint32_t R, uint32_t C>
+[[nodiscard]] auto
+heaviside(ModuleBuilder& builder, const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
+{
+  Matrix<Value, R, C> result;
+
+  for (uint32_t i = 0; i < (R * C); i++) {
+    result[i] = builder.heaviside(x[i]);
   }
 
   return result;
@@ -130,6 +177,23 @@ matmul(ModuleBuilder& builder, const Matrix<Value, R, M>& a, const Matrix<Value,
 
       result(i, j) = sum;
     }
+  }
+
+  return result;
+}
+
+//======================//
+// Activation Functions //
+//======================//
+
+template<uint32_t R, uint32_t C>
+[[nodiscard]] auto
+relu(ModuleBuilder& builder, const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
+{
+  Matrix<Value, R, C> result;
+
+  for (uint32_t i = 0; i < (R * C); i++) {
+    result[i] = builder.relu(x[i]);
   }
 
   return result;

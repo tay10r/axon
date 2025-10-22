@@ -98,6 +98,22 @@ public:
   void accept(ExprVisitor& visitor) const override;
 };
 
+class ReLUExpr final : public UnaryExpr
+{
+public:
+  using UnaryExpr::UnaryExpr;
+
+  void accept(ExprVisitor& visitor) const override;
+};
+
+class HeavisideExpr final : public UnaryExpr
+{
+public:
+  using UnaryExpr::UnaryExpr;
+
+  void accept(ExprVisitor& visitor) const override;
+};
+
 class BinaryExpr : public Expr
 {
 public:
@@ -111,14 +127,6 @@ private:
   uint32_t m_left;
 
   uint32_t m_right;
-};
-
-class MaxExpr final : public BinaryExpr
-{
-public:
-  using BinaryExpr::BinaryExpr;
-
-  void accept(ExprVisitor& visitor) const override;
 };
 
 class AddExpr final : public BinaryExpr

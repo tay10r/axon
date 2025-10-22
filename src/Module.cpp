@@ -96,41 +96,64 @@ public:
     (void)push(new GradAddExpr(e.index(), grad.index()));
   }
 
+  void visit(const ReLUExpr& e) override
+  {
+    const auto grad = findGrad(&e);
+    const auto x = e.operand();
+
+    const auto mask = push(new HeavisideExpr(x));
+
+    registerGrad(m_module->m_exprs.at(x).get(), new MulExpr(grad.index(), mask.index()));
+  }
+
+  void visit(const HeavisideExpr& e) override
+  {
+    const auto x = e.operand();
+
+    registerGrad(m_module->m_exprs.at(x).get(), new ConstExpr(0.0f));
+  }
+
   void visit(const NegateExpr& e) override
   {
-    (void)e;
-    //
+    const auto grad = findGrad(&e);
+    const auto op = e.operand();
+    registerGrad(m_module->m_exprs.at(op).get(), new NegateExpr(grad.index()));
   }
 
   void visit(const RcpExpr& e) override
   {
+    const auto grad = findGrad(&e);
     const auto op = e.operand();
-    (void)op;
-    //
+
+    const auto rcp1 = push(new RcpExpr(op));
+    const auto rcp2 = push(new RcpExpr(op));
+    const auto rcp_sq = push(new MulExpr(rcp1.index(), rcp2.index()));
+    const auto piece = push(new NegateExpr(rcp_sq.index()));
+
+    registerGrad(m_module->m_exprs.at(op).get(), new MulExpr(grad.index(), piece.index()));
   }
 
   void visit(const SqrtExpr& e) override
   {
+    const auto grad = findGrad(&e);
     const auto op = e.operand();
-    (void)op;
-    //
+
+    const auto half = push(new ConstExpr(0.5f));
+    const auto s = push(new SqrtExpr(op));
+    const auto rs = push(new RcpExpr(s.index()));
+    const auto coeff = push(new MulExpr(half.index(), rs.index()));
+
+    registerGrad(m_module->m_exprs.at(op).get(), new MulExpr(grad.index(), coeff.index()));
   }
 
   void visit(const ExpExpr& e) override
   {
+    const auto grad = findGrad(&e);
     const auto op = e.operand();
-    (void)op;
-    //
-  }
 
-  void visit(const MaxExpr& e) override
-  {
-    const auto l = e.left();
-    const auto r = e.right();
-    (void)l;
-    (void)r;
-
-    //
+    // d/dx exp(x) = exp(x)
+    const auto ex = push(new ExpExpr(op));
+    registerGrad(m_module->m_exprs.at(op).get(), new MulExpr(grad.index(), ex.index()));
   }
 
   void visit(const AddExpr& e) override
@@ -227,6 +250,17 @@ public:
   }
 
   [[nodiscard]] auto constant(const float value) -> Value override { return push(new ConstExpr(value)); }
+
+  [[nodiscard]] auto negate(const Value operand) -> Value override { return push(new NegateExpr(operand.index())); }
+
+  [[nodiscard]] auto exp(const Value operand) -> Value override { return push(new ExpExpr(operand.index())); }
+
+  [[nodiscard]] auto heaviside(const Value operand) -> Value override
+  {
+    return push(new HeavisideExpr(operand.index()));
+  }
+
+  [[nodiscard]] auto relu(const Value operand) -> Value override { return push(new ReLUExpr(operand.index())); }
 
   [[nodiscard]] auto add(Value left, Value right) -> Value override
   {

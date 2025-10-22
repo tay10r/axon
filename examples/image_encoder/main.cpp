@@ -113,13 +113,13 @@ main() -> int
   auto builder = axon::ModuleBuilder::create();
   const auto input_uv = axon::input<2, 1>(*builder);
 
-  const auto w0 = axon::param<3, 2>(*builder);
-  const auto w1 = axon::param<3, 3>(*builder);
-  const auto w2 = axon::param<3, 3>(*builder);
-  const auto w3 = axon::param<3, 3>(*builder);
-  const auto x0 = matmul(*builder, w0, input_uv);
-  const auto x1 = matmul(*builder, w1, x0);
-  const auto x2 = matmul(*builder, w2, x1);
+  const auto w0 = axon::param<8, 2>(*builder);
+  const auto w1 = axon::param<8, 8>(*builder);
+  const auto w2 = axon::param<8, 8>(*builder);
+  const auto w3 = axon::param<3, 8>(*builder);
+  const auto x0 = relu(*builder, matmul(*builder, w0, input_uv));
+  const auto x1 = relu(*builder, matmul(*builder, w1, x0));
+  const auto x2 = relu(*builder, matmul(*builder, w2, x1));
   const auto rgbOut = matmul(*builder, w3, x2);
 
   auto evalModule = builder->build();
@@ -138,7 +138,7 @@ main() -> int
     return EXIT_FAILURE;
   }
 
-  const auto epochs = 100;
+  const auto epochs = 1000;
 
   for (int i = 0; i < epochs; i++) {
 

@@ -56,9 +56,15 @@ ExprPrinter::visit(const ExpExpr& e)
 }
 
 void
-ExprPrinter::visit(const MaxExpr& e)
+ExprPrinter::visit(const ReLUExpr& e)
 {
-  out << "max %" << e.left() << " %" << e.right() << '\n';
+  out << "relu %" << e.operand() << '\n';
+}
+
+void
+ExprPrinter::visit(const HeavisideExpr& e)
+{
+  out << "heaviside %" << e.operand() << '\n';
 }
 
 void
