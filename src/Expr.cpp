@@ -101,7 +101,25 @@ ReLUExpr::accept(ExprVisitor& visitor) const
 }
 
 void
+SigmoidExpr::accept(ExprVisitor& visitor) const
+{
+  visitor.visit(*this);
+}
+
+void
 HeavisideExpr::accept(ExprVisitor& visitor) const
+{
+  visitor.visit(*this);
+}
+
+void
+SinExpr::accept(ExprVisitor& visitor) const
+{
+  visitor.visit(*this);
+}
+
+void
+CosExpr::accept(ExprVisitor& visitor) const
 {
   visitor.visit(*this);
 }

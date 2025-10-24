@@ -9,7 +9,10 @@ class NegateExpr;
 class RcpExpr;
 class SqrtExpr;
 class ExpExpr;
+class SinExpr;
+class CosExpr;
 class ReLUExpr;
+class SigmoidExpr;
 class HeavisideExpr;
 class AddExpr;
 class SubExpr;
@@ -37,7 +40,13 @@ public:
 
   virtual void visit(const ReLUExpr&) = 0;
 
+  virtual void visit(const SigmoidExpr&) = 0;
+
   virtual void visit(const HeavisideExpr&) = 0;
+
+  virtual void visit(const SinExpr&) = 0;
+
+  virtual void visit(const CosExpr&) = 0;
 
   virtual void visit(const AddExpr&) = 0;
 

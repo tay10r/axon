@@ -106,7 +106,31 @@ public:
   void accept(ExprVisitor& visitor) const override;
 };
 
+class SigmoidExpr final : public UnaryExpr
+{
+public:
+  using UnaryExpr::UnaryExpr;
+
+  void accept(ExprVisitor& visitor) const override;
+};
+
 class HeavisideExpr final : public UnaryExpr
+{
+public:
+  using UnaryExpr::UnaryExpr;
+
+  void accept(ExprVisitor& visitor) const override;
+};
+
+class SinExpr final : public UnaryExpr
+{
+public:
+  using UnaryExpr::UnaryExpr;
+
+  void accept(ExprVisitor& visitor) const override;
+};
+
+class CosExpr final : public UnaryExpr
 {
 public:
   using UnaryExpr::UnaryExpr;

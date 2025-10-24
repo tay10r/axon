@@ -11,7 +11,7 @@ class Dataset;
 class Optimizer
 {
 public:
-  [[nodiscard]] static auto create() -> std::unique_ptr<Optimizer>;
+  [[nodiscard]] static auto create(int seed = 0) -> std::unique_ptr<Optimizer>;
 
   virtual ~Optimizer();
 
@@ -19,7 +19,7 @@ public:
 
   [[nodiscard]] virtual auto exec(Value loss) -> float = 0;
 
-  virtual void step(float lr) = 0;
+  virtual void step(float lr = 0.001F, float momentum = 0.9F) = 0;
 
   virtual void zeroGrad() = 0;
 

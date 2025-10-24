@@ -27,7 +27,13 @@ public:
 
   void visit(const ReLUExpr&) override;
 
+  void visit(const SigmoidExpr&) override;
+
   void visit(const HeavisideExpr&) override;
+
+  void visit(const SinExpr&) override;
+
+  void visit(const CosExpr&) override;
 
   void visit(const AddExpr&) override;
 

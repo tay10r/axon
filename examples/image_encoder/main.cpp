@@ -10,6 +10,8 @@
 #include "deps/stb_image_write.h"
 
 #include <algorithm>
+#include <iomanip>
+#include <sstream>
 #include <vector>
 
 #include <stdint.h>
@@ -61,7 +63,7 @@ generateDataset(const char* filename) -> bool
 }
 
 void
-generateTestImage(axon::Interpreter& interp, axon::Value r, axon::Value g, axon::Value b)
+generateTestImage(axon::Interpreter& interp, axon::Value r, axon::Value g, axon::Value b, const std::string& filename)
 {
   constexpr int w = 256;
   constexpr int h = 256;
@@ -90,7 +92,7 @@ generateTestImage(axon::Interpreter& interp, axon::Value r, axon::Value g, axon:
     dst[2] = static_cast<uint8_t>(bOut);
   }
 
-  stbi_write_png("result.png", w, h, 3, img.data(), w * 3);
+  stbi_write_png(filename.c_str(), w, h, 3, img.data(), w * 3);
 }
 
 } // namespace
@@ -111,16 +113,23 @@ main() -> int
   }
 
   auto builder = axon::ModuleBuilder::create();
-  const auto input_uv = axon::input<2, 1>(*builder);
 
-  const auto w0 = axon::param<8, 2>(*builder);
-  const auto w1 = axon::param<8, 8>(*builder);
-  const auto w2 = axon::param<8, 8>(*builder);
-  const auto w3 = axon::param<3, 8>(*builder);
-  const auto x0 = relu(*builder, matmul(*builder, w0, input_uv));
-  const auto x1 = relu(*builder, matmul(*builder, w1, x0));
-  const auto x2 = relu(*builder, matmul(*builder, w2, x1));
-  const auto rgbOut = matmul(*builder, w3, x2);
+  const auto u = builder->input();
+  const auto v = builder->input();
+  const auto uv = axon::Matrix<axon::Value, 2, 1>{ u, v };
+  const auto u_f = axon::fourier_embed<6>(*builder, u);
+  const auto v_f = axon::fourier_embed<6>(*builder, v);
+  const auto input = axon::concat(axon::concat(uv, u_f), v_f);
+
+  const auto wIn = axon::param<16, 26>(*builder);
+
+  const auto x0 = relu(*builder, matmul(*builder, wIn, input));
+  const auto x1 = relu(*builder, linear(*builder, x0));
+  const auto x2 = relu(*builder, linear(*builder, x1));
+  const auto x3 = relu(*builder, linear(*builder, x2));
+  const auto wOut = axon::param<3, 16>(*builder);
+  const auto bOut = axon::param<3, 1>(*builder);
+  const auto rgbOut = add(*builder, matmul(*builder, wOut, x3), bOut);
 
   auto evalModule = builder->build();
 
@@ -138,35 +147,41 @@ main() -> int
     return EXIT_FAILURE;
   }
 
-  const auto epochs = 1000;
-
-  for (int i = 0; i < epochs; i++) {
-
-    const int samples = 100'000;
-
-    optim->zeroGrad();
-
-    float lossSum{ 0.0F };
-
-    for (int j = 0; j < samples; j++) {
-
-      lossSum += optim->exec(loss);
-    }
-
-    printf("epoch[%d]: %f\n", i, (lossSum / static_cast<float>(samples)));
-
-    optim->step(/*lr=*/0.01F / static_cast<float>(samples));
-  }
-
-  // load the eval network and test it
+  const auto epochs = 20;
 
   std::vector<float> parameters(evalModule->numParameters(), 0.0F);
 
-  optim->readParameters(parameters.data());
+  for (int i = 0; i < epochs; i++) {
 
-  auto interp = axon::Interpreter::create(*evalModule, parameters.data());
+    const uint32_t batchSize = 16;
 
-  generateTestImage(*interp, rgbOut[0], rgbOut[1], rgbOut[2]);
+    float lossSum{ 0.0F };
+
+    const auto numBatches = data->rows() / batchSize;
+
+    for (uint32_t j = 0; j < numBatches; j++) {
+
+      optim->zeroGrad();
+
+      for (uint32_t k = 0; k < batchSize; k++) {
+        lossSum += optim->exec(loss);
+      }
+
+      optim->step(/*lr=*/0.01F, /*momentum=*/0.1F);
+    }
+
+    optim->readParameters(parameters.data());
+
+    auto interp = axon::Interpreter::create(*evalModule, parameters.data());
+
+    std::ostringstream pathStream;
+    pathStream << "result_" << std::setw(4) << std::setfill('0') << i << ".png";
+    const auto path = pathStream.str();
+
+    generateTestImage(*interp, rgbOut[0], rgbOut[1], rgbOut[2], path);
+
+    printf("epoch[%d]: %f\n", i, (lossSum / static_cast<float>(data->rows())));
+  }
 
   return EXIT_SUCCESS;
 }

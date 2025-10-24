@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 3.20)
 
 project(axon)
 
-option(AXON_WARNINGS "Whether or not to enable compiler warnings." OFF)
-option(AXON_EXAMPLES "Whether or not to build the example programs." OFF)
+option(AXON_WARNINGS "Whether to enable compiler warnings."   OFF)
+option(AXON_EXAMPLES "Whether to build the example programs." OFF)
+option(AXON_DEBUGGER "Whether to build the debugger."         OFF)
 
 if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)

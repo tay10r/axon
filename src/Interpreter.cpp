@@ -23,7 +23,7 @@ public:
     : m_module(m.copy())
     , m_parameters(parameters)
     , m_gradient(gradient)
-    , m_buffer(m.numExprs(), 0.0F)
+    , m_buffer(m_module->numExprs(), 0.0F)
   {
   }
 
@@ -56,12 +56,18 @@ public:
 
   void visit(const ReLUExpr& e) override { m_buffer.at(m_ip++) = fmaxf(m_buffer.at(e.operand()), 0.0F); }
 
+  void visit(const SigmoidExpr& e) override { m_buffer.at(m_ip++) = 1.0F / (1.0F + expf(-m_buffer.at(e.operand()))); }
+
   void visit(const HeavisideExpr& e) override
   {
     const auto x = m_buffer.at(e.operand());
 
     m_buffer.at(m_ip++) = (x > 0.0F) ? 1.0F : 0.0F;
   }
+
+  void visit(const SinExpr& e) override { m_buffer.at(m_ip++) = sinf(m_buffer.at(e.operand())); }
+
+  void visit(const CosExpr& e) override { m_buffer.at(m_ip++) = cosf(m_buffer.at(e.operand())); }
 
   void visit(const AddExpr& e) override { m_buffer.at(m_ip++) = m_buffer.at(e.left()) + m_buffer.at(e.right()); }
 
@@ -74,6 +80,8 @@ public:
     if (m_gradient) {
       m_gradient[e.paramIndex()] += m_buffer.at(e.valueIndex());
     }
+
+    m_ip++;
   }
 
   void reset() { m_ip = 0; }

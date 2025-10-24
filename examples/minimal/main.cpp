@@ -19,11 +19,14 @@ public:
   {
     auto fn = [](const float x) -> float { return x * -5.2F + 0.3F; };
 
-    std::uniform_real_distribution<float> dist(0, 1);
-    // x
-    row[0] = dist(m_rng);
+    std::uniform_real_distribution<float> inputDist(-5, 5);
+
+    std::uniform_real_distribution<float> noiseDist(-0.1F, 0.1F);
+
+    row[0] = inputDist(m_rng);
+
     // y_target
-    row[1] = fn(row[0]);
+    row[1] = fn(row[0]) + noiseDist(m_rng);
   }
 
 private:
@@ -41,10 +44,8 @@ main() -> int
   auto x = builder->input();
   auto yPred = builder->add(builder->mul(x, w), b);
 
-  // loss
   auto yTarget = builder->input();
-  auto yError = builder->sub(yPred, yTarget);
-  auto loss = builder->mul(yError, yError);
+  const auto loss = axon::mse(*builder, yPred, yTarget);
 
   auto m = builder->buildWithGrad(loss);
 
@@ -78,7 +79,7 @@ main() -> int
 
     std::cout << "epoch[" << i << "]: " << (lossSum / static_cast<float>(samples)) << std::endl;
 
-    optim->step(/*lr=*/0.01F);
+    optim->step(/*lr=*/0.01F, 0);
   }
 
   return EXIT_SUCCESS;

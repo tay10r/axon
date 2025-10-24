@@ -40,7 +40,13 @@ public:
 
   [[nodiscard]] virtual auto relu(Value operand) -> Value = 0;
 
+  [[nodiscard]] virtual auto sigmoid(Value operand) -> Value = 0;
+
   [[nodiscard]] virtual auto heaviside(Value operand) -> Value = 0;
+
+  [[nodiscard]] virtual auto sin(Value operand) -> Value = 0;
+
+  [[nodiscard]] virtual auto cos(Value operand) -> Value = 0;
 
   [[nodiscard]] virtual auto add(Value left, Value right) -> Value = 0;
 
@@ -182,6 +188,67 @@ matmul(ModuleBuilder& builder, const Matrix<Value, R, M>& a, const Matrix<Value,
   return result;
 }
 
+template<uint32_t R>
+[[nodiscard]] auto
+linear(ModuleBuilder& builder, const Matrix<Value, R, 1>& x, const bool bias = true) -> Matrix<Value, R, 1>
+{
+  const auto w = param<R, R>(builder);
+  const auto x0 = matmul(builder, w, x);
+  if (bias) {
+    const auto b = param<R, 1>(builder);
+    return add(builder, x0, b);
+  } else {
+    return x0;
+  }
+}
+
+template<uint32_t R>
+[[nodiscard]] auto
+residual(ModuleBuilder& builder, const Matrix<Value, R, 1>& x) -> Matrix<Value, R, 1>
+{
+  const auto w = param<R, R>(builder);
+  const auto b = param<R, 1>(builder);
+  const auto y = add(builder, matmul(builder, w, x), b);
+  return add(builder, relu(builder, x), y);
+}
+
+template<uint32_t Bands>
+[[nodiscard]] auto
+fourier_embed(ModuleBuilder& builder, Value value) -> Matrix<Value, Bands * 2, 1>
+{
+  Matrix<Value, Bands * 2, 1> result;
+
+  float e = 1.0F;
+
+  for (uint32_t i = 0; i < Bands; i++) {
+    constexpr auto pi = 3.14159265359F;
+    const auto f = builder.constant(2.0F * pi * e);
+    const auto x = builder.mul(f, value);
+    result[i * 2 + 0] = builder.sin(x);
+    result[i * 2 + 1] = builder.cos(x);
+    e *= 2.0F;
+  }
+
+  return result;
+}
+
+template<uint32_t R1, uint32_t R2>
+[[nodiscard]] auto
+concat(const Matrix<Value, R1, 1>& a, const Matrix<Value, R2, 1>& b) -> Matrix<Value, R1 + R2, 1>
+{
+  Matrix<Value, R1 + R2, 1> result;
+
+  for (uint32_t i = 0; i < R1; i++) {
+    result[i] = a[i];
+  }
+
+  for (uint32_t i = 0; i < R2; i++) {
+    result[i + R1] = b[i];
+  }
+
+  return result;
+}
+
 //======================//
 // Activation Functions //
 //======================//
@@ -199,6 +266,19 @@ relu(ModuleBuilder& builder, const Matrix<Value, R, C>& x) -> Matrix<Value, R, C
   return result;
 }
 
+template<uint32_t R, uint32_t C>
+[[nodiscard]] auto
+sigmoid(ModuleBuilder& builder, const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
+{
+  Matrix<Value, R, C> result;
+
+  for (uint32_t i = 0; i < (R * C); i++) {
+    result[i] = builder.sigmoid(x[i]);
+  }
+
+  return result;
+}
+
 //================//
 // Loss Functions //
 //================//
@@ -207,8 +287,6 @@ template<uint32_t R, uint32_t C>
 [[nodiscard]] auto
 mse(ModuleBuilder& builder, const Matrix<Value, R, C>& a, const Matrix<Value, R, C>& b) -> Value
 {
-  Matrix<Value, R, C> result;
-
   const auto delta = sub(builder, a, b);
 
   auto sum = builder.constant(0.0F);
@@ -224,5 +302,8 @@ mse(ModuleBuilder& builder, const Matrix<Value, R, C>& a, const Matrix<Value, R,
 
   return builder.mul(sum, builder.constant(scale));
 }
+
+auto
+mse(ModuleBuilder& builder, const Value a, const Value b) -> Value;
 
 } // namespace axon

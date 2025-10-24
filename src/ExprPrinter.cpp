@@ -62,9 +62,27 @@ ExprPrinter::visit(const ReLUExpr& e)
 }
 
 void
+ExprPrinter::visit(const SigmoidExpr& e)
+{
+  out << "sigmoid %" << e.operand() << '\n';
+}
+
+void
 ExprPrinter::visit(const HeavisideExpr& e)
 {
   out << "heaviside %" << e.operand() << '\n';
+}
+
+void
+ExprPrinter::visit(const SinExpr& e)
+{
+  out << "sin %" << e.operand() << '\n';
+}
+
+void
+ExprPrinter::visit(const CosExpr& e)
+{
+  out << "cos %" << e.operand() << '\n';
 }
 
 void

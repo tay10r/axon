@@ -73,16 +73,9 @@ public:
 
   void registerGrad(const Expr* expr, Expr* gradExpr)
   {
-    std::unique_ptr<Expr> tmp(gradExpr);
+    const auto value = push(gradExpr);
 
-    auto it = m_gradMap.find(expr);
-    if (it == m_gradMap.end()) {
-      it = m_gradMap.emplace(expr, Value()).first;
-    }
-
-    m_module->m_exprs.emplace_back(std::move(tmp));
-
-    it->second = Value(static_cast<uint32_t>(m_module->m_exprs.size() - 1));
+    registerGrad(expr, value);
   }
 
   void visit(const ConstExpr&) override {}
@@ -104,6 +97,18 @@ public:
     const auto mask = push(new HeavisideExpr(x));
 
     registerGrad(m_module->m_exprs.at(x).get(), new MulExpr(grad.index(), mask.index()));
+  }
+
+  void visit(const SigmoidExpr& e) override
+  {
+    const auto grad = findGrad(&e);
+    // TODO : investigate if its worth it to cache the sigmoid value in the forward pass
+    const auto x = push(new SigmoidExpr(e.operand()));
+    const auto k = push(new ConstExpr(1.0F));
+    const auto x0 = push(new SubExpr(k.index(), x.index()));
+    const auto x1 = push(new MulExpr(x.index(), x0.index()));
+    const auto x2 = push(new MulExpr(grad.index(), x1.index()));
+    registerGrad(m_module->m_exprs.at(e.operand()).get(), x2);
   }
 
   void visit(const HeavisideExpr& e) override
@@ -151,9 +156,27 @@ public:
     const auto grad = findGrad(&e);
     const auto op = e.operand();
 
-    // d/dx exp(x) = exp(x)
     const auto ex = push(new ExpExpr(op));
     registerGrad(m_module->m_exprs.at(op).get(), new MulExpr(grad.index(), ex.index()));
+  }
+
+  void visit(const SinExpr& e) override
+  {
+    const auto grad = findGrad(&e);
+    const auto x = e.operand();
+
+    const auto c = push(new CosExpr(x));
+    registerGrad(m_module->m_exprs.at(x).get(), new MulExpr(grad.index(), c.index()));
+  }
+
+  void visit(const CosExpr& e) override
+  {
+    const auto grad = findGrad(&e);
+    const auto x = e.operand();
+
+    const auto s = push(new SinExpr(x));
+    const auto sNeg = push(new NegateExpr(s.index()));
+    registerGrad(m_module->m_exprs.at(x).get(), new MulExpr(grad.index(), sNeg.index()));
   }
 
   void visit(const AddExpr& e) override
@@ -191,13 +214,12 @@ protected:
   {
     auto it = m_gradMap.find(expr);
 
-    assert(it == m_gradMap.end());
-
     if (it == m_gradMap.end()) {
-      it = m_gradMap.emplace(expr, Value()).first;
+      m_gradMap.emplace(expr, value).first;
+    } else {
+      // accumulate gradient
+      it->second = push(new AddExpr(it->second.index(), value.index()));
     }
-
-    it->second = value;
   }
 
   [[nodiscard]] auto findGrad(const Expr* expr) -> Value { return m_gradMap.at(expr); }
@@ -262,6 +284,12 @@ public:
 
   [[nodiscard]] auto relu(const Value operand) -> Value override { return push(new ReLUExpr(operand.index())); }
 
+  [[nodiscard]] auto sigmoid(const Value operand) -> Value override { return push(new SigmoidExpr(operand.index())); }
+
+  [[nodiscard]] auto sin(const Value operand) -> Value override { return push(new SinExpr(operand.index())); }
+
+  [[nodiscard]] auto cos(const Value operand) -> Value override { return push(new CosExpr(operand.index())); }
+
   [[nodiscard]] auto add(Value left, Value right) -> Value override
   {
     return push(new AddExpr(left.index(), right.index()));
@@ -303,5 +331,13 @@ ModuleBuilder::create() -> std::unique_ptr<ModuleBuilder>
 }
 
 ModuleBuilder::~ModuleBuilder() = default;
+
+auto
+mse(ModuleBuilder& builder, const Value a, const Value b) -> Value
+{
+  const auto delta = builder.sub(a, b);
+  const auto sum = builder.mul(delta, delta);
+  return sum;
+}
 
 } // namespace axon
