@@ -13,8 +13,14 @@ class Value;
 
 class ModuleBuilder
 {
+  friend Value;
+
 public:
-  [[nodiscard]] static auto create() -> std::unique_ptr<ModuleBuilder>;
+  [[nodiscard]] static auto current() -> ModuleBuilder*;
+
+  static void setCurrent(ModuleBuilder* builder);
+
+  [[nodiscard]] static auto create(bool setCurrent = true) -> std::unique_ptr<ModuleBuilder>;
 
   virtual ~ModuleBuilder();
 
@@ -28,17 +34,24 @@ public:
    * */
   [[nodiscard]] virtual auto buildWithGrad(Value loss) -> std::unique_ptr<Module> = 0;
 
-  [[nodiscard]] virtual auto input() -> Value = 0;
+protected:
+  [[nodiscard]] virtual auto constant(float value) -> Value = 0;
 
   [[nodiscard]] virtual auto param() -> Value = 0;
 
-  [[nodiscard]] virtual auto constant(float value) -> Value = 0;
+  [[nodiscard]] virtual auto input() -> Value = 0;
+
+  [[nodiscard]] virtual auto add(Value left, Value right) -> Value = 0;
+
+  [[nodiscard]] virtual auto sub(Value left, Value right) -> Value = 0;
+
+  [[nodiscard]] virtual auto mul(Value left, Value right) -> Value = 0;
+
+  [[nodiscard]] virtual auto relu(Value operand) -> Value = 0;
 
   [[nodiscard]] virtual auto negate(Value operand) -> Value = 0;
 
   [[nodiscard]] virtual auto exp(Value operand) -> Value = 0;
-
-  [[nodiscard]] virtual auto relu(Value operand) -> Value = 0;
 
   [[nodiscard]] virtual auto sigmoid(Value operand) -> Value = 0;
 
@@ -47,100 +60,123 @@ public:
   [[nodiscard]] virtual auto sin(Value operand) -> Value = 0;
 
   [[nodiscard]] virtual auto cos(Value operand) -> Value = 0;
-
-  [[nodiscard]] virtual auto add(Value left, Value right) -> Value = 0;
-
-  [[nodiscard]] virtual auto sub(Value left, Value right) -> Value = 0;
-
-  [[nodiscard]] virtual auto mul(Value left, Value right) -> Value = 0;
 };
 
+[[nodiscard]] inline auto
+constant(const float value) -> Value
+{
+  return Value::constant(value);
+}
+
+[[nodiscard]] inline auto
+input() -> Value
+{
+  return Value::input();
+}
+
 template<uint32_t R, uint32_t C>
 [[nodiscard]] auto
-input(ModuleBuilder& builder) -> Matrix<Value, R, C>
+input() -> Matrix<Value, R, C>
 {
   Matrix<Value, R, C> result;
 
   for (uint32_t i = 0; i < (R * C); i++) {
-    result.data[i] = Value(builder.input());
+    result.data[i] = Value::input();
   }
 
   return result;
 }
 
+[[nodiscard]] inline auto
+param() -> Value
+{
+  return Value::param();
+}
+
 template<uint32_t R, uint32_t C>
 [[nodiscard]] auto
-param(ModuleBuilder& builder) -> Matrix<Value, R, C>
+param() -> Matrix<Value, R, C>
 {
   Matrix<Value, R, C> result;
 
   for (uint32_t i = 0; i < (R * C); i++) {
-    result.data[i] = Value(builder.param());
+    result.data[i] = Value::param();
   }
 
   return result;
 }
 
+[[nodiscard]] inline auto
+sin(const Value& value) -> Value
+{
+  return value.sin();
+}
+
 template<uint32_t R, uint32_t C>
 [[nodiscard]] auto
-negate(ModuleBuilder& builder, const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
+sin(const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
 {
   Matrix<Value, R, C> result;
 
   for (uint32_t i = 0; i < (R * C); i++) {
-    result[i] = builder.negate(x[i]);
+    result[i] = sin(x[i]);
   }
 
   return result;
 }
 
+[[nodiscard]] inline auto
+cos(const Value& value) -> Value
+{
+  return value.cos();
+}
+
 template<uint32_t R, uint32_t C>
 [[nodiscard]] auto
-exp(ModuleBuilder& builder, const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
+cos(const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
 {
   Matrix<Value, R, C> result;
 
   for (uint32_t i = 0; i < (R * C); i++) {
-    result[i] = builder.exp(x[i]);
+    result[i] = cos(x[i]);
   }
 
   return result;
 }
 
+[[nodiscard]] inline auto
+exp(const Value& value) -> Value
+{
+  return value.exp();
+}
+
 template<uint32_t R, uint32_t C>
 [[nodiscard]] auto
-heaviside(ModuleBuilder& builder, const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
+exp(const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
 {
   Matrix<Value, R, C> result;
 
   for (uint32_t i = 0; i < (R * C); i++) {
-    result[i] = builder.heaviside(x[i]);
+    result[i] = exp(x[i]);
   }
 
   return result;
 }
 
-template<uint32_t R, uint32_t C>
-[[nodiscard]] auto
-add(ModuleBuilder& builder, const Matrix<Value, R, C>& a, const Matrix<Value, R, C>& b) -> Matrix<Value, R, C>
+[[nodiscard]] inline auto
+heaviside(const Value& value) -> Value
 {
-  Matrix<Value, R, C> result;
-
-  for (uint32_t i = 0; i < (R * C); i++) {
-    result[i] = builder.add(a[i], b[i]);
-  }
-
-  return result;
+  return value.heaviside();
 }
 
 template<uint32_t R, uint32_t C>
 [[nodiscard]] auto
-sub(ModuleBuilder& builder, const Matrix<Value, R, C>& a, const Matrix<Value, R, C>& b) -> Matrix<Value, R, C>
+heaviside(const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
 {
   Matrix<Value, R, C> result;
 
   for (uint32_t i = 0; i < (R * C); i++) {
-    result[i] = builder.sub(a[i], b[i]);
+    result[i] = heaviside(x[i]);
   }
 
   return result;
@@ -148,15 +184,12 @@ sub(ModuleBuilder& builder, const Matrix<Value, R, C>& a, const Matrix<Value, R,
 
 template<uint32_t Dim>
 [[nodiscard]] auto
-dot(ModuleBuilder& builder, const Matrix<Value, Dim, 1>& a, const Matrix<Value, Dim, 1>& b) -> Value
+dot(const Matrix<Value, Dim, 1>& a, const Matrix<Value, Dim, 1>& b) -> Value
 {
-  auto x = builder.constant(0.0F);
+  auto x = constant(0.0F);
 
   for (uint32_t i = 0; i < Dim; i++) {
-
-    const auto prod = builder.mul(a[i], b[i]);
-
-    x = builder.add(prod, x);
+    x = (a[i] * b[i]) + x;
   }
 
   return x;
@@ -164,7 +197,7 @@ dot(ModuleBuilder& builder, const Matrix<Value, Dim, 1>& a, const Matrix<Value, 
 
 template<uint32_t R, uint32_t M, uint32_t C>
 [[nodiscard]] auto
-matmul(ModuleBuilder& builder, const Matrix<Value, R, M>& a, const Matrix<Value, M, C>& b) -> Matrix<Value, R, C>
+matmul(const Matrix<Value, R, M>& a, const Matrix<Value, M, C>& b) -> Matrix<Value, R, C>
 {
   Matrix<Value, R, C> result;
 
@@ -172,13 +205,13 @@ matmul(ModuleBuilder& builder, const Matrix<Value, R, M>& a, const Matrix<Value,
 
     for (uint32_t j = 0; j < C; ++j) {
 
-      auto sum = builder.constant(0.0F);
+      auto sum = constant(0.0F);
 
       for (uint32_t k = 0; k < M; ++k) {
 
-        const auto prod = builder.mul(a(i, k), b(k, j));
+        const auto prod = a(i, k) * b(k, j);
 
-        sum = builder.add(sum, prod);
+        sum = sum + prod;
       }
 
       result(i, j) = sum;
@@ -190,13 +223,11 @@ matmul(ModuleBuilder& builder, const Matrix<Value, R, M>& a, const Matrix<Value,
 
 template<uint32_t R>
 [[nodiscard]] auto
-linear(ModuleBuilder& builder, const Matrix<Value, R, 1>& x, const bool bias = true) -> Matrix<Value, R, 1>
+linear(const Matrix<Value, R, 1>& x, const bool bias = true) -> Matrix<Value, R, 1>
 {
-  const auto w = param<R, R>(builder);
-  const auto x0 = matmul(builder, w, x);
+  const auto x0 = matmul(param<R, R>(), x);
   if (bias) {
-    const auto b = param<R, 1>(builder);
-    return add(builder, x0, b);
+    return x0 + param<R, 1>();
   } else {
     return x0;
   }
@@ -204,17 +235,17 @@ linear(ModuleBuilder& builder, const Matrix<Value, R, 1>& x, const bool bias = t
 
 template<uint32_t R>
 [[nodiscard]] auto
-residual(ModuleBuilder& builder, const Matrix<Value, R, 1>& x) -> Matrix<Value, R, 1>
+residual(const Matrix<Value, R, 1>& x) -> Matrix<Value, R, 1>
 {
-  const auto w = param<R, R>(builder);
-  const auto b = param<R, 1>(builder);
-  const auto y = add(builder, matmul(builder, w, x), b);
-  return add(builder, relu(builder, x), y);
+  const auto w = param<R, R>();
+  const auto b = param<R, 1>();
+  const auto y = matmul(w, x) + b;
+  return relu(x) + y;
 }
 
 template<uint32_t Bands>
 [[nodiscard]] auto
-fourier_embed(ModuleBuilder& builder, Value value) -> Matrix<Value, Bands * 2, 1>
+fourier_embed(Value value) -> Matrix<Value, Bands * 2, 1>
 {
   Matrix<Value, Bands * 2, 1> result;
 
@@ -222,10 +253,10 @@ fourier_embed(ModuleBuilder& builder, Value value) -> Matrix<Value, Bands * 2, 1
 
   for (uint32_t i = 0; i < Bands; i++) {
     constexpr auto pi = 3.14159265359F;
-    const auto f = builder.constant(2.0F * pi * e);
-    const auto x = builder.mul(f, value);
-    result[i * 2 + 0] = builder.sin(x);
-    result[i * 2 + 1] = builder.cos(x);
+    const auto f = constant(2.0F * pi * e);
+    const auto x = f * value;
+    result[i * 2 + 0] = sin(x);
+    result[i * 2 + 1] = cos(x);
     e *= 2.0F;
   }
 
@@ -253,27 +284,39 @@ concat(const Matrix<Value, R1, 1>& a, const Matrix<Value, R2, 1>& b) -> Matrix<V
 // Activation Functions //
 //======================//
 
+[[nodiscard]] inline auto
+relu(const Value& value) -> Value
+{
+  return value.relu();
+}
+
 template<uint32_t R, uint32_t C>
 [[nodiscard]] auto
-relu(ModuleBuilder& builder, const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
+relu(const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
 {
   Matrix<Value, R, C> result;
 
   for (uint32_t i = 0; i < (R * C); i++) {
-    result[i] = builder.relu(x[i]);
+    result[i] = x[i].relu();
   }
 
   return result;
 }
 
+[[nodiscard]] inline auto
+sigmoid(const Value& value) -> Value
+{
+  return value.sigmoid();
+}
+
 template<uint32_t R, uint32_t C>
 [[nodiscard]] auto
-sigmoid(ModuleBuilder& builder, const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
+sigmoid(const Matrix<Value, R, C>& x) -> Matrix<Value, R, C>
 {
   Matrix<Value, R, C> result;
 
   for (uint32_t i = 0; i < (R * C); i++) {
-    result[i] = builder.sigmoid(x[i]);
+    result[i] = sigmoid(x[i]);
   }
 
   return result;
@@ -283,27 +326,27 @@ sigmoid(ModuleBuilder& builder, const Matrix<Value, R, C>& x) -> Matrix<Value, R
 // Loss Functions //
 //================//
 
+auto
+mse(const Value a, const Value b) -> Value;
+
 template<uint32_t R, uint32_t C>
 [[nodiscard]] auto
-mse(ModuleBuilder& builder, const Matrix<Value, R, C>& a, const Matrix<Value, R, C>& b) -> Value
+mse(const Matrix<Value, R, C>& a, const Matrix<Value, R, C>& b) -> Value
 {
-  const auto delta = sub(builder, a, b);
+  const auto delta = a - b;
 
-  auto sum = builder.constant(0.0F);
+  auto sum = constant(0.0F);
 
   for (uint32_t i = 0; i < (R * C); i++) {
 
-    const auto product = builder.mul(delta[i], delta[i]);
+    const auto product = delta[i] * delta[i];
 
-    sum = builder.add(sum, product);
+    sum = sum + product;
   }
 
   const auto scale = 1.0F / static_cast<float>(R * C);
 
-  return builder.mul(sum, builder.constant(scale));
+  return sum * constant(scale);
 }
-
-auto
-mse(ModuleBuilder& builder, const Value a, const Value b) -> Value;
 
 } // namespace axon

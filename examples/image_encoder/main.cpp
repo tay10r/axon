@@ -114,30 +114,30 @@ main() -> int
 
   auto builder = axon::ModuleBuilder::create();
 
-  const auto u = builder->input();
-  const auto v = builder->input();
+  const auto u = axon::input();
+  const auto v = axon::input();
   const auto uv = axon::Matrix<axon::Value, 2, 1>{ u, v };
-  const auto u_f = axon::fourier_embed<6>(*builder, u);
-  const auto v_f = axon::fourier_embed<6>(*builder, v);
+  const auto u_f = axon::fourier_embed<6>(u);
+  const auto v_f = axon::fourier_embed<6>(v);
   const auto input = axon::concat(axon::concat(uv, u_f), v_f);
 
-  const auto wIn = axon::param<16, 26>(*builder);
+  const auto wIn = axon::param<16, 26>();
 
-  const auto x0 = relu(*builder, matmul(*builder, wIn, input));
-  const auto x1 = relu(*builder, linear(*builder, x0));
-  const auto x2 = relu(*builder, linear(*builder, x1));
-  const auto x3 = relu(*builder, linear(*builder, x2));
-  const auto wOut = axon::param<3, 16>(*builder);
-  const auto bOut = axon::param<3, 1>(*builder);
-  const auto rgbOut = add(*builder, matmul(*builder, wOut, x3), bOut);
+  const auto x0 = relu(matmul(wIn, input));
+  const auto x1 = relu(linear(x0));
+  const auto x2 = relu(linear(x1));
+  const auto x3 = relu(linear(x2));
+  const auto wOut = axon::param<3, 16>();
+  const auto bOut = axon::param<3, 1>();
+  const auto rgbOut = matmul(wOut, x3) + bOut;
 
   auto evalModule = builder->build();
 
   // train the network
 
-  const auto target = axon::input<3, 1>(*builder);
+  const auto target = axon::input<3, 1>();
 
-  const auto loss = axon::mse(*builder, target, rgbOut);
+  const auto loss = axon::mse(target, rgbOut);
 
   auto gradModule = builder->buildWithGrad(loss);
 

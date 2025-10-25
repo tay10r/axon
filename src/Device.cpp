@@ -83,6 +83,11 @@ public:
     return createProgram("shaders/row_reduce.glsl");
   }
 
+  [[nodiscard]] auto createInterpolateProgram() -> std::unique_ptr<DeviceProgram> override
+  {
+    return createProgram("shaders/interpolate.glsl");
+  }
+
   [[nodiscard]] auto wait(unsigned int timeout) -> bool override
   {
     GLsync fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);

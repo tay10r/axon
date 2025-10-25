@@ -29,6 +29,7 @@ if(AXON_GPU_SUPPORT)
 
   cmrc_add_resource_library(axon_shaders
     shaders/row_reduce.glsl
+    shaders/interpolate.glsl
   )
 
 endif()
@@ -38,6 +39,7 @@ add_library(axon
   include/axon/Expr.h
   include/axon/ExprPrinter.h
   include/axon/ExprVisitor.h
+  include/axon/Matrix.h
   include/axon/Module.h
   include/axon/ModuleBuilder.h
   include/axon/Value.h

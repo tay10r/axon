@@ -39,13 +39,14 @@ auto
 main() -> int
 {
   auto builder = axon::ModuleBuilder::create();
-  auto w = builder->param();
-  auto b = builder->param();
-  auto x = builder->input();
-  auto yPred = builder->add(builder->mul(x, w), b);
 
-  auto yTarget = builder->input();
-  const auto loss = axon::mse(*builder, yPred, yTarget);
+  auto w = axon::param();
+  auto b = axon::param();
+  auto x = axon::Value::input();
+  auto yPred = x * w + b;
+
+  auto yTarget = axon::Value::input();
+  const auto loss = axon::mse(yPred, yTarget);
 
   auto m = builder->buildWithGrad(loss);
 

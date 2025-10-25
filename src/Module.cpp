@@ -1,5 +1,6 @@
 #include <axon/Module.h>
 
+#include <axon/Exception.h>
 #include <axon/Expr.h>
 #include <axon/ExprVisitor.h>
 #include <axon/ModuleBuilder.h>
@@ -241,6 +242,8 @@ private:
 
 class ModuleBuilderImpl final : public ModuleBuilder
 {
+  friend GradModuleInserter;
+
 public:
   [[nodiscard]] auto build() -> std::unique_ptr<Module> override { return std::make_unique<ModuleImpl>(*m_module); }
 
@@ -325,19 +328,42 @@ private:
 } // namespace
 
 auto
-ModuleBuilder::create() -> std::unique_ptr<ModuleBuilder>
+ModuleBuilder::create(const bool setCurrent) -> std::unique_ptr<ModuleBuilder>
 {
-  return std::make_unique<ModuleBuilderImpl>();
+  auto result = std::make_unique<ModuleBuilderImpl>();
+
+  if (setCurrent) {
+    ModuleBuilder::setCurrent(result.get());
+  }
+
+  return result;
 }
 
 ModuleBuilder::~ModuleBuilder() = default;
 
 auto
-mse(ModuleBuilder& builder, const Value a, const Value b) -> Value
+mse(const Value a, const Value b) -> Value
 {
-  const auto delta = builder.sub(a, b);
-  const auto sum = builder.mul(delta, delta);
+  const auto delta = a - b;
+  const auto sum = delta * delta;
   return sum;
+}
+
+thread_local ModuleBuilder* g_current{ nullptr };
+
+auto
+ModuleBuilder::current() -> ModuleBuilder*
+{
+  if (!g_current) {
+    throw Exception("no current builder is set");
+  }
+  return g_current;
+}
+
+void
+ModuleBuilder::setCurrent(ModuleBuilder* builder)
+{
+  g_current = builder;
 }
 
 } // namespace axon

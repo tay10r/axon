@@ -18,6 +18,8 @@ public:
 
   virtual auto createRowSumProgram() -> std::unique_ptr<DeviceProgram> = 0;
 
+  virtual auto createInterpolateProgram() -> std::unique_ptr<DeviceProgram> = 0;
+
   [[nodiscard]] virtual auto wait(unsigned int timeout = 5000) -> bool = 0;
 };
 
