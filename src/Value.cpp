@@ -37,12 +37,6 @@ Value::Value(const uint32_t index)
 }
 
 auto
-Value::index() const -> uint32_t
-{
-  return m_index;
-}
-
-auto
 Value::valid() const -> bool
 {
   return m_index == std::numeric_limits<uint32_t>::max();

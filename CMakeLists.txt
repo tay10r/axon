@@ -2,10 +2,12 @@ cmake_minimum_required(VERSION 3.20)
 
 project(axon)
 
-option(AXON_WARNINGS    "Whether to enable compiler warnings."          OFF)
-option(AXON_EXAMPLES    "Whether to build the example programs."        OFF)
-option(AXON_GPU_SUPPORT "Whether to build with GPU support."             ON)
-option(AXON_IPO         "Whether to enable interprocedural optimziation" ON)
+option(AXON_WARNINGS    "Whether to enable compiler warnings."           OFF)
+option(AXON_EXAMPLES    "Whether to build the example programs."         OFF)
+option(AXON_GPU_SUPPORT "Whether to build with GPU support."              ON)
+option(AXON_IPO         "Whether to enable interprocedural optimziation"  ON)
+option(AXON_NATIVE_TUNE "Whether to build for the current CPU."          OFF)
+option(AXON_FAST_MATH   "Whether to build with fast math flags."          ON)
 
 include(cmake/CMakeRC.cmake)
 
@@ -58,6 +60,18 @@ add_library(axon
   src/Interpreter.cpp
   ${gpu_sources}
 )
+
+if(AXON_FAST_MATH)
+  if(CMAKE_COMPILER_IS_GNUCXX)
+    target_compile_options(axon PRIVATE -ffast-math)
+  endif()
+endif()
+
+if(AXON_NATIVE_TUNE)
+  if(CMAKE_COMPILER_IS_GNUCXX)
+    target_compile_options(axon PRIVATE -march=native)
+  endif()
+endif()
 
 if(AXON_IPO)
   set_target_properties(axon

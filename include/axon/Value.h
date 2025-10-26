@@ -19,7 +19,7 @@ public:
 
   explicit Value(uint32_t index);
 
-  [[nodiscard]] auto index() const -> uint32_t;
+  [[nodiscard]] auto index() const -> uint32_t { return m_index; }
 
   [[nodiscard]] auto valid() const -> bool;
 

@@ -17,7 +17,9 @@ public:
 
   virtual ~Interpreter();
 
-  [[nodiscard]] virtual auto getValue(Value value) const -> const float* = 0;
+  [[nodiscard]] virtual auto getValue(const Value& value) const -> const float* = 0;
+
+  [[nodiscard]] virtual auto getValueAverage(const Value& value) const -> float = 0;
 
   virtual void exec(const float* input) = 0;
 };

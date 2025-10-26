@@ -10,6 +10,7 @@
 #include "deps/stb_image_write.h"
 
 #include <algorithm>
+#include <chrono>
 #include <iomanip>
 #include <sstream>
 #include <vector>
@@ -147,9 +148,14 @@ main() -> int
 
   std::vector<float> parameters(evalModule->numParameters(), 0.0F);
 
+  printf("starting training loop (%d parameters)\n", static_cast<int>(evalModule->numParameters()));
+
   for (int i = 0; i < epochs; i++) {
 
-    const auto trainLoss = optim->runEpoch(loss, /*lr=*/0.01F, /*momentum=*/0.1F);
+    const auto t0 = std::chrono::high_resolution_clock::now();
+    const auto trainLoss = optim->runEpoch(loss, /*lr=*/0.01F * 16.0F, /*momentum=*/0.1F);
+    const auto t1 = std::chrono::high_resolution_clock::now();
+    const auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
 
     optim->readParameters(parameters.data());
 
@@ -161,7 +167,7 @@ main() -> int
 
     generateTestImage(*interp, rgbOut[0], rgbOut[1], rgbOut[2], path);
 
-    printf("epoch[%d]: %f\n", i, trainLoss);
+    printf("epoch[%d]: %f (%lu ms)\n", i, trainLoss, static_cast<unsigned long int>(dt));
   }
 
   return EXIT_SUCCESS;

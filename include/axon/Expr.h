@@ -21,7 +21,7 @@ public:
 
   void accept(ExprVisitor& visitor) const override;
 
-  [[nodiscard]] auto index() const -> uint32_t;
+  [[nodiscard]] auto index() const -> uint32_t { return m_index; }
 
 private:
   uint32_t m_index;
@@ -34,7 +34,7 @@ public:
 
   void accept(ExprVisitor& visitor) const override;
 
-  [[nodiscard]] auto index() const -> uint32_t;
+  [[nodiscard]] auto index() const -> uint32_t { return m_index; }
 
 private:
   uint32_t m_index;
@@ -49,7 +49,7 @@ public:
 
   void accept(ExprVisitor& visitor) const override;
 
-  [[nodiscard]] auto value() const -> float;
+  [[nodiscard]] auto value() const -> float { return m_value; }
 
 private:
   float m_value{ 0.0F };
@@ -60,7 +60,7 @@ class UnaryExpr : public Expr
 public:
   explicit UnaryExpr(uint32_t operand);
 
-  [[nodiscard]] auto operand() const -> uint32_t;
+  [[nodiscard]] auto operand() const -> uint32_t { return m_operand; }
 
 private:
   uint32_t m_operand;
@@ -143,9 +143,9 @@ class BinaryExpr : public Expr
 public:
   BinaryExpr(uint32_t l, uint32_t r);
 
-  [[nodiscard]] auto left() const -> uint32_t;
+  [[nodiscard]] auto left() const -> uint32_t { return m_left; }
 
-  [[nodiscard]] auto right() const -> uint32_t;
+  [[nodiscard]] auto right() const -> uint32_t { return m_right; }
 
 private:
   uint32_t m_left;

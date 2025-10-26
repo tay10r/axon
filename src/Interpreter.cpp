@@ -43,7 +43,15 @@ public:
   {
   }
 
-  [[nodiscard]] auto getValue(const Value value) const -> const float* override { return m_buffer[value.index()].data; }
+  [[nodiscard]] auto getValue(const Value& value) const -> const float* override
+  {
+    return m_buffer[value.index()].data;
+  }
+
+  [[nodiscard]] auto getValueAverage(const Value& value) const -> float override
+  {
+    return m_buffer[value.index()].average();
+  }
 
   void exec(const float* input) override
   {
@@ -124,6 +132,14 @@ Interpreter::create(const Module& m, const int batchSize, const float* parameter
       return std::make_unique<InterpreterImpl<8>>(m, parameters, gradient);
     case 16:
       return std::make_unique<InterpreterImpl<16>>(m, parameters, gradient);
+    case 32:
+      return std::make_unique<InterpreterImpl<32>>(m, parameters, gradient);
+    case 64:
+      return std::make_unique<InterpreterImpl<64>>(m, parameters, gradient);
+    case 128:
+      return std::make_unique<InterpreterImpl<128>>(m, parameters, gradient);
+    case 256:
+      return std::make_unique<InterpreterImpl<256>>(m, parameters, gradient);
     default: {
       std::ostringstream stream;
       stream << "unsupported batch size of " << batchSize;

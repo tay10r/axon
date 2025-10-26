@@ -23,14 +23,12 @@ namespace axon {
 
 namespace {
 
-template<int N>
 class OptimizerImpl final : public Optimizer
 {
 public:
-  using Float = VFloat<N>;
-
-  explicit OptimizerImpl(const Module& m, const Dataset& dataset, const int seed)
+  explicit OptimizerImpl(const Module& m, const Dataset& dataset, const int batchSize, const int seed)
     : m_rng(static_cast<unsigned int>(seed))
+    , m_batchSize(batchSize)
   {
     if (m.numInputs() != dataset.cols()) {
       std::ostringstream stream;
@@ -39,10 +37,10 @@ public:
       throw Exception(stream.str());
     }
 
-    if ((dataset.rows() % N) != 0) {
+    if ((dataset.rows() % m_batchSize) != 0) {
       std::ostringstream stream;
       stream << "The number of rows in the dataset (" << dataset.rows() << ") should be divisible";
-      stream << " by the batch size (" << N << ")";
+      stream << " by the batch size (" << m_batchSize << ")";
       throw Exception(stream.str());
     }
 
@@ -58,7 +56,7 @@ public:
 
     memcpy(m_data.data(), dataset.data(), m_data.size() * sizeof(float));
 
-    m_input.resize(N * m.numInputs());
+    m_input.resize(m_batchSize * m.numInputs());
 
     m_indices.resize(dataset.rows());
 
@@ -78,7 +76,7 @@ public:
 
     initializeParams();
 
-    m_interpreter = Interpreter::create(m, N, m_parameters.data(), m_gradient.data());
+    m_interpreter = Interpreter::create(m, m_batchSize, m_parameters.data(), m_gradient.data());
   }
 
   [[nodiscard]] auto step(const Value& loss, const float lr, const float momentum) -> float override
@@ -87,9 +85,9 @@ public:
 
     for (uint32_t column = 0; column < m_cols; column++) {
 
-      auto* dstPtr = &m_input[column * N];
+      auto* dstPtr = &m_input[column * m_batchSize];
 
-      for (int i = 0; i < N; i++) {
+      for (int i = 0; i < m_batchSize; i++) {
 
         const auto* row = m_data.data() + m_cols * m_indices[m_rowOffset + static_cast<uint32_t>(i)];
 
@@ -97,7 +95,7 @@ public:
       }
     }
 
-    m_rowOffset = (m_rowOffset + N) % static_cast<uint32_t>(m_indices.size());
+    m_rowOffset = (m_rowOffset + m_batchSize) % static_cast<uint32_t>(m_indices.size());
 
     m_interpreter->exec(m_input.data());
 
@@ -118,12 +116,12 @@ public:
       m_parameters[i] -= m_momentum[i] * lr;
     }
 
-    return Float::fromPtr(m_interpreter->getValue(loss)).average();
+    return m_interpreter->getValueAverage(loss);
   }
 
   [[maybe_unused]] auto runEpoch(const Value& loss, const float lr, const float momentum) -> float override
   {
-    const auto numSteps = m_indices.size() / N;
+    const auto numSteps = m_indices.size() / m_batchSize;
 
     auto lossSum = 0.0F;
 
@@ -131,7 +129,7 @@ public:
       lossSum += step(loss, lr, momentum);
     }
 
-    return lossSum * (1.0F / static_cast<float>(N));
+    return lossSum * (1.0F / static_cast<float>(m_batchSize));
   }
 
   void readParameters(float* parameters) override
@@ -180,6 +178,8 @@ private:
   uint32_t m_cols{};
 
   std::mt19937 m_rng;
+
+  const int m_batchSize{};
 };
 
 } // namespace
@@ -188,21 +188,7 @@ auto
 Optimizer::create(const Module& gradModule, const Dataset& dataset, const int batchSize, const int seed)
   -> std::unique_ptr<Optimizer>
 {
-  switch (batchSize) {
-    case 1:
-      return std::make_unique<OptimizerImpl<1>>(gradModule, dataset, seed);
-    case 4:
-      return std::make_unique<OptimizerImpl<4>>(gradModule, dataset, seed);
-    case 8:
-      return std::make_unique<OptimizerImpl<8>>(gradModule, dataset, seed);
-    case 16:
-      return std::make_unique<OptimizerImpl<16>>(gradModule, dataset, seed);
-    default: {
-      std::ostringstream stream;
-      stream << "unsupported batch size " << batchSize;
-      throw Exception(stream.str());
-    }
-  }
+  return std::make_unique<OptimizerImpl>(gradModule, dataset, batchSize, seed);
 }
 
 Optimizer::~Optimizer() = default;

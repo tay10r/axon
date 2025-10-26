@@ -17,12 +17,6 @@ InputExpr::accept(ExprVisitor& visitor) const
   visitor.visit(*this);
 }
 
-auto
-InputExpr::index() const -> uint32_t
-{
-  return m_index;
-}
-
 ParamExpr::ParamExpr(const uint32_t index)
   : m_index(index)
 {
@@ -32,12 +26,6 @@ void
 ParamExpr::accept(ExprVisitor& visitor) const
 {
   visitor.visit(*this);
-}
-
-auto
-ParamExpr::index() const -> uint32_t
-{
-  return m_index;
 }
 
 ConstExpr::ConstExpr() = default;
@@ -53,21 +41,9 @@ ConstExpr::accept(ExprVisitor& visitor) const
   visitor.visit(*this);
 }
 
-auto
-ConstExpr::value() const -> float
-{
-  return m_value;
-}
-
 UnaryExpr::UnaryExpr(const uint32_t operand)
   : m_operand(operand)
 {
-}
-
-auto
-UnaryExpr::operand() const -> uint32_t
-{
-  return m_operand;
 }
 
 void
@@ -128,18 +104,6 @@ BinaryExpr::BinaryExpr(const uint32_t l, const uint32_t r)
   : m_left(l)
   , m_right(r)
 {
-}
-
-auto
-BinaryExpr::left() const -> uint32_t
-{
-  return m_left;
-}
-
-auto
-BinaryExpr::right() const -> uint32_t
-{
-  return m_right;
 }
 
 void
