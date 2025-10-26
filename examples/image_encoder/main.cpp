@@ -82,9 +82,9 @@ generateTestImage(axon::Interpreter& interp, axon::Value r, axon::Value g, axon:
 
     interp.exec(input);
 
-    const auto rOut = std::clamp(interp.getValue(r) * 255.0F, 0.0F, 255.0F);
-    const auto gOut = std::clamp(interp.getValue(g) * 255.0F, 0.0F, 255.0F);
-    const auto bOut = std::clamp(interp.getValue(b) * 255.0F, 0.0F, 255.0F);
+    const auto rOut = std::clamp(interp.getValue(r)[0] * 255.0F, 0.0F, 255.0F);
+    const auto gOut = std::clamp(interp.getValue(g)[0] * 255.0F, 0.0F, 255.0F);
+    const auto bOut = std::clamp(interp.getValue(b)[0] * 255.0F, 0.0F, 255.0F);
 
     auto* dst = &img[i * 3];
     dst[0] = static_cast<uint8_t>(rOut);
@@ -141,11 +141,7 @@ main() -> int
 
   auto gradModule = builder->buildWithGrad(loss);
 
-  auto optim = axon::Optimizer::create();
-  if (!optim->prepare(*gradModule, *data)) {
-    fprintf(stderr, "failed to prepare optimizer\n");
-    return EXIT_FAILURE;
-  }
+  auto optim = axon::Optimizer::create(*gradModule, *data, /*batchSize=*/16, /*seed=*/0);
 
   const auto epochs = 20;
 
@@ -153,26 +149,11 @@ main() -> int
 
   for (int i = 0; i < epochs; i++) {
 
-    const uint32_t batchSize = 16;
-
-    float lossSum{ 0.0F };
-
-    const auto numBatches = data->rows() / batchSize;
-
-    for (uint32_t j = 0; j < numBatches; j++) {
-
-      optim->zeroGrad();
-
-      for (uint32_t k = 0; k < batchSize; k++) {
-        lossSum += optim->exec(loss);
-      }
-
-      optim->step(/*lr=*/0.01F, /*momentum=*/0.1F);
-    }
+    const auto trainLoss = optim->runEpoch(loss, /*lr=*/0.01F, /*momentum=*/0.1F);
 
     optim->readParameters(parameters.data());
 
-    auto interp = axon::Interpreter::create(*evalModule, parameters.data());
+    auto interp = axon::Interpreter::create(*evalModule, /*batchSize=*/1, parameters.data());
 
     std::ostringstream pathStream;
     pathStream << "result_" << std::setw(4) << std::setfill('0') << i << ".png";
@@ -180,7 +161,7 @@ main() -> int
 
     generateTestImage(*interp, rgbOut[0], rgbOut[1], rgbOut[2], path);
 
-    printf("epoch[%d]: %f\n", i, (lossSum / static_cast<float>(data->rows())));
+    printf("epoch[%d]: %f\n", i, trainLoss);
   }
 
   return EXIT_SUCCESS;

@@ -46,6 +46,7 @@ add_library(axon
   include/axon/Optimizer.h
   include/axon/Dataset.h
   include/axon/Interpreter.h
+  src/VFloat.h
   src/Exception.cpp
   src/Expr.cpp
   src/ExprPrinter.cpp

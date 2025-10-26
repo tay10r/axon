@@ -4,7 +4,6 @@
 #include <stdlib.h>
 
 #include <axon/Dataset.h>
-#include <axon/ExprPrinter.h>
 #include <axon/Module.h>
 #include <axon/ModuleBuilder.h>
 #include <axon/Optimizer.h>
@@ -50,37 +49,21 @@ main() -> int
 
   auto m = builder->buildWithGrad(loss);
 
-  // print for debugging
-  axon::ExprPrinter printer(&std::cout);
-  m->visit(printer);
-
   // generate training data
   CustomData generator;
-  auto data = axon::Dataset::create(/*rows=*/100, /*cols=*/2, generator);
+  const int rows = 128;
+  auto data = axon::Dataset::create(/*rows=*/rows, /*cols=*/2, generator);
 
-  auto optim = axon::Optimizer::create();
-  if (!optim->prepare(*m, *data)) {
-    return EXIT_FAILURE;
-  }
+  const int batchSize = 16;
+  auto optim = axon::Optimizer::create(*m, *data, /*batchSize=*/batchSize, /*seed=*/0);
 
   const auto epochs = 10;
 
   for (int i = 0; i < epochs; i++) {
 
-    const int samples = 100;
+    const auto lossAvg = optim->runEpoch(loss);
 
-    optim->zeroGrad();
-
-    float lossSum{ 0.0F };
-
-    for (int j = 0; j < samples; j++) {
-
-      lossSum += optim->exec(loss);
-    }
-
-    std::cout << "epoch[" << i << "]: " << (lossSum / static_cast<float>(samples)) << std::endl;
-
-    optim->step(/*lr=*/0.01F, 0);
+    std::cout << "epoch[" << i << "]: " << lossAvg << std::endl;
   }
 
   return EXIT_SUCCESS;
