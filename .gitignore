@@ -1,4 +1,4 @@
 .cache
 build
 examples/image_encoder/data.axd
-examples/image_encoder/result*.png
+examples/image_encoder/epoch_*.png
