@@ -8,27 +8,22 @@ such as single GPU kernels or embedded systems.
 ### Example
 
 ```cpp
-int main() {
-
-    // This is used to build the neural network.
-    // Note that a global pointer is also associated
-    // with this object and can be explicity set (or unset)
-    // with axon::ModuleBuilder::setCurrent()
-    auto builder = axon::ModuleBuilder::create();
+void
+compile(axon::Compiler& compiler)
 
     // a 3x3 trainable parameter
-    const auto w = axon::param<3, 3>();
+    const auto w = axon::param<3, 3>(/*name=*/"w");
 
     // a 3x1 input vector
     const auto x = axon::input<3, 1>();
 
     // a 3x1 trainable parameter
-    const auto b = axon::input<3, 1>();
+    const auto b = axon::input<3, 1>(/*name=*/"b");
 
     const auto y = w * x + b;
 
     // This represents the computational graph above, and can be used for inference.
-    const auto evalModule = builder->build();
+    compiler.buildEvalModule({ y });
 
     // Target values are considered inputs
     const auto target = axon::input<3, 1>();
@@ -38,9 +33,7 @@ int main() {
 
     // This module is used for computing the gradients with respect to the
     // given loss value.
-    const auto gradModule = builder->buildWithGrad(loss);
-
-    return 0;
+    compiler.buildGradModule(loss);
 }
 ```
 
