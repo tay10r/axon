@@ -3,6 +3,7 @@
 #include <axon/matrix.hpp>
 
 #include <memory>
+#include <string_view>
 #include <vector>
 
 #include <stdint.h>
@@ -38,7 +39,7 @@ public:
 protected:
   [[nodiscard]] virtual auto constant(float value) -> Value = 0;
 
-  [[nodiscard]] virtual auto param() -> Value = 0;
+  [[nodiscard]] virtual auto param(const std::string_view& name) -> Value = 0;
 
   [[nodiscard]] virtual auto input() -> Value = 0;
 
@@ -89,19 +90,19 @@ input() -> Matrix<Value, R, C>
 }
 
 [[nodiscard]] inline auto
-param() -> Value
+param(const std::string_view& name = "") -> Value
 {
-  return Value::param();
+  return Value::param(name);
 }
 
 template<uint32_t R, uint32_t C>
 [[nodiscard]] auto
-param() -> Matrix<Value, R, C>
+param(const std::string_view& name = "") -> Matrix<Value, R, C>
 {
   Matrix<Value, R, C> result;
 
   for (uint32_t i = 0; i < (R * C); i++) {
-    result.data[i] = Value::param();
+    result.data[i] = Value::param(name, i);
   }
 
   return result;

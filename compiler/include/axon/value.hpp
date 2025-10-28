@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string_view>
+
+#include <stddef.h>
 #include <stdint.h>
 
 namespace axon {
@@ -11,7 +14,9 @@ class Value final
 public:
   [[nodiscard]] static auto input() -> Value;
 
-  [[nodiscard]] static auto param() -> Value;
+  [[nodiscard]] static auto param(const std::string_view& name) -> Value;
+
+  [[nodiscard]] static auto param(const std::string_view& name, size_t index) -> Value;
 
   [[nodiscard]] static auto constant(float value) -> Value;
 

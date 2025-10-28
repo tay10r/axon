@@ -300,6 +300,62 @@ axon_opt_step(axon_opt_z* self, const float lr, const float momentum, float* AXO
 }
 )";
 
+class ParamNameWriter final : public ExprVisitor
+{
+public:
+  explicit ParamNameWriter(std::ostream* output)
+    : m_output(output)
+  {
+  }
+
+  void visit(const InputExpr&) override {}
+
+  void visit(const ParamExpr& e) override
+  {
+    const auto name = e.name();
+
+    if (!name.empty()) {
+      (*m_output) << "#define AXON_PARAMETER_" << name << ' ' << e.index() << std::endl;
+      m_numNames++;
+    }
+  }
+
+  void visit(const ConstExpr&) override {}
+
+  void visit(const NegateExpr&) override {}
+
+  void visit(const RcpExpr&) override {}
+
+  void visit(const SqrtExpr&) override {}
+
+  void visit(const ExpExpr&) override {}
+
+  void visit(const ReLUExpr&) override {}
+
+  void visit(const SigmoidExpr&) override {}
+
+  void visit(const HeavisideExpr&) override {}
+
+  void visit(const SinExpr&) override {}
+
+  void visit(const CosExpr&) override {}
+
+  void visit(const AddExpr&) override {}
+
+  void visit(const SubExpr&) override {}
+
+  void visit(const MulExpr&) override {}
+
+  void visit(const OutputExpr&) override {}
+
+  [[nodiscard]] auto numNames() const -> size_t { return m_numNames; }
+
+private:
+  std::ostream* m_output;
+
+  size_t m_numNames{};
+};
+
 class CExporter final : public Exporter
 {
 public:
@@ -327,6 +383,11 @@ public:
     f << "#define AXON_GRAD_INPUTS " << gradModule.numInputs() << std::endl;
     f << "#define AXON_GRAD_OUTPUTS " << gradModule.numOutputs() << std::endl;
     f << std::endl;
+    ParamNameWriter paramNameWriter(&f);
+    evalModule.visit(paramNameWriter);
+    if (paramNameWriter.numNames() > 0) {
+      f << std::endl;
+    }
     f << "inline static void" << std::endl;
     f << "axon_eval(const float* AXON_RESTRICT parameters, const float* AXON_RESTRICT input, float* AXON_RESTRICT "
          "output)"

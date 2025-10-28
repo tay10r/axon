@@ -17,8 +17,9 @@ InputExpr::accept(ExprVisitor& visitor) const
   visitor.visit(*this);
 }
 
-ParamExpr::ParamExpr(const uint32_t index)
+ParamExpr::ParamExpr(const uint32_t index, const std::string_view& name)
   : m_index(index)
+  , m_name(name)
 {
 }
 
@@ -26,6 +27,12 @@ void
 ParamExpr::accept(ExprVisitor& visitor) const
 {
   visitor.visit(*this);
+}
+
+auto
+ParamExpr::name() const -> std::string_view
+{
+  return m_name;
 }
 
 ConstExpr::ConstExpr() = default;

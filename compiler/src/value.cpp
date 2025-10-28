@@ -3,6 +3,7 @@
 #include <axon/module_builder.hpp>
 
 #include <limits>
+#include <sstream>
 
 namespace axon {
 
@@ -19,9 +20,19 @@ Value::input() -> Value
 }
 
 auto
-Value::param() -> Value
+Value::param(const std::string_view& name) -> Value
 {
-  return ModuleBuilder::current()->param();
+  return ModuleBuilder::current()->param(name);
+}
+
+auto
+Value::param(const std::string_view& name, const size_t index) -> Value
+{
+  // for arrays, we don't want to emit a name for each element
+
+  const auto filteredName = (index == 0) ? name : std::string_view();
+
+  return ModuleBuilder::current()->param(filteredName);
 }
 
 Value::Value()

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <string_view>
+
 #include <stdint.h>
 
 namespace axon {
@@ -30,14 +33,18 @@ private:
 class ParamExpr final : public Expr
 {
 public:
-  explicit ParamExpr(uint32_t index);
+  explicit ParamExpr(uint32_t index, const std::string_view& name = "");
 
   void accept(ExprVisitor& visitor) const override;
 
   [[nodiscard]] auto index() const -> uint32_t { return m_index; }
 
+  [[nodiscard]] auto name() const -> std::string_view;
+
 private:
   uint32_t m_index;
+
+  std::string m_name;
 };
 
 class ConstExpr final : public Expr

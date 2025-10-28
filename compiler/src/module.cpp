@@ -280,13 +280,13 @@ public:
 
   [[nodiscard]] auto input() -> Value override { return push(new InputExpr(m_module->m_numInputs++)); }
 
-  [[nodiscard]] auto param() -> Value override
+  [[nodiscard]] auto param(const std::string_view& name) -> Value override
   {
     const uint32_t param = m_module->m_numParameters;
 
     m_module->m_numParameters++;
 
-    return push(new ParamExpr(param));
+    return push(new ParamExpr(param, name));
   }
 
   [[nodiscard]] auto constant(const float value) -> Value override { return push(new ConstExpr(value)); }

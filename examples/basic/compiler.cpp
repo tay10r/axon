@@ -10,8 +10,8 @@ compile(axon::Compiler& compiler)
 {
   /* First thing we do is define the computational graph for the neural net. */
 
-  const auto w = axon::param();
-  const auto b = axon::param();
+  const auto w = axon::param("m");
+  const auto b = axon::param("b");
   const auto x = axon::input();
   const auto y = w * x + b;
 
