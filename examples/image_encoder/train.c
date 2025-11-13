@@ -82,8 +82,8 @@ main()
 
     for (int i = 0; i < train_samples; i++) {
 
-      //const uint32_t x = axon_rng_range(&rng, 0, (uint32_t)w - 1);
-      //const uint32_t y = axon_rng_range(&rng, 0, (uint32_t)h - 1);
+      // const uint32_t x = axon_rng_range(&rng, 0, (uint32_t)w - 1);
+      // const uint32_t y = axon_rng_range(&rng, 0, (uint32_t)h - 1);
       const int x = randint(0, w - 1);
       const int y = randint(0, h - 1);
 

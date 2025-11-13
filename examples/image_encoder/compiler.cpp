@@ -7,8 +7,8 @@ compile(axon::Compiler& compiler)
   const auto v = axon::input();
   const auto uv = axon::Matrix<axon::Value, 2, 1>{ u, v };
 
-  const auto u_f = axon::fourier_embed<6>(u);
-  const auto v_f = axon::fourier_embed<6>(v);
+  const auto u_f = axon::fourierEmbed<6>(u);
+  const auto v_f = axon::fourierEmbed<6>(v);
   const auto input = axon::concat(axon::concat(uv, u_f), v_f);
   const auto wIn = axon::param<16, 26>();
   const auto x0 = relu(matmul(wIn, input));

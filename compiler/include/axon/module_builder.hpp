@@ -259,7 +259,7 @@ residual(const Matrix<Value, R, 1>& x) -> Matrix<Value, R, 1>
 
 template<uint32_t Bands>
 [[nodiscard]] auto
-fourier_embed(Value value) -> Matrix<Value, Bands * 2, 1>
+fourierEmbed(Value value) -> Matrix<Value, Bands * 2, 1>
 {
   Matrix<Value, Bands * 2, 1> result;
 
